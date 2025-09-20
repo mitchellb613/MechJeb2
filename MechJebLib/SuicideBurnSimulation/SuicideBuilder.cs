@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using MechJebLib.Primitives;
-using MechJebLib.PVG;
+using MechJebLib.PDG;
 
 namespace MechJebLib.SuicideBurnSimulation
 {

@@ -411,5 +411,17 @@ namespace MechJebLib.Primitives
             other[i + 1, j] = this[1];
             other[i + 2, j] = this[2];
         }
+
+        public static V3 CopyFromIndices(IList<double> array, (int, int, int) indices)
+        {
+            return new V3(array[indices.Item1], array[indices.Item2], array[indices.Item3]);
+        }
+
+        public void CopyToIndices(IList<double> array, (int, int, int) indices)
+        {
+            array[indices.Item1] = this[0];
+            array[indices.Item2] = this[1];
+            array[indices.Item3] = this[2];
+        }
     }
 }

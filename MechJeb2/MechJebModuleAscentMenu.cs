@@ -3,7 +3,7 @@ using System;
 using JetBrainsAnnotations::JetBrains.Annotations;
 using KSP.Localization;
 using MechJebLib.Functions;
-using MechJebLib.PVG;
+using MechJebLib.PDG;
 using UnityEngine;
 using UnityEngine.Profiling;
 
@@ -15,7 +15,7 @@ namespace MuMech
         {
             Localizer.Format("#MechJeb_Ascent_ascentPathList1"),
             Localizer.Format("#MechJeb_Ascent_ascentPathList3")
-        }; // "Classic Ascent Profile", "Primer Vector Guidance (RSS/RO)"
+        }; // "Classic Ascent Profile", "PDG (RSS/RO)"
 
         public MechJebModuleAscentMenu(MechJebCore core) : base(core) { }
 
@@ -52,19 +52,19 @@ namespace MuMech
         private MechJebModuleAscentBaseAutopilot   _autopilot      => Core.Ascent;
         private MechJebModuleAscentSettings        _ascentSettings => Core.AscentSettings;
         private MechJebModuleAscentClassicPathMenu _classicPathMenu;
-        private MechJebModuleAscentPVGSettingsMenu _pvgSettingsMenu;
+        private MechJebModuleAscentPDGSettingsMenu _pdgSettingsMenu;
         private MechJebModuleAscentSettingsMenu    _settingsMenu;
 
         public override void OnStart(PartModule.StartState state)
         {
-            _pvgSettingsMenu = Core.GetComputerModule<MechJebModuleAscentPVGSettingsMenu>();
+            _pdgSettingsMenu = Core.GetComputerModule<MechJebModuleAscentPDGSettingsMenu>();
             _settingsMenu    = Core.GetComputerModule<MechJebModuleAscentSettingsMenu>();
             _classicPathMenu = Core.GetComputerModule<MechJebModuleAscentClassicPathMenu>();
         }
 
         [UsedImplicitly]
         [Persistent(pass = (int)Pass.GLOBAL)]
-        public bool _lastPVGSettingsEnabled;
+        public bool _lastPDGSettingsEnabled;
 
         [UsedImplicitly]
         [Persistent(pass = (int)Pass.GLOBAL)]
@@ -72,7 +72,7 @@ namespace MuMech
 
         protected override void OnModuleEnabled()
         {
-            _pvgSettingsMenu.Enabled = _lastPVGSettingsEnabled;
+            _pdgSettingsMenu.Enabled = _lastPDGSettingsEnabled;
             _settingsMenu.Enabled    = _lastSettingsMenuEnabled;
         }
 
@@ -81,9 +81,9 @@ namespace MuMech
             _launchingToPlane        = false;
             _launchingToRendezvous   = false;
             _launchingToMatchLan     = false;
-            _lastPVGSettingsEnabled  = _pvgSettingsMenu.Enabled;
+            _lastPDGSettingsEnabled  = _pdgSettingsMenu.Enabled;
             _lastSettingsMenuEnabled = _settingsMenu.Enabled;
-            _pvgSettingsMenu.Enabled = false;
+            _pdgSettingsMenu.Enabled = false;
             _settingsMenu.Enabled    = false;
         }
 
@@ -126,7 +126,7 @@ namespace MuMech
             Profiler.BeginSample("MJ.GUIWindow.ShowTargeting");
             GUILayout.BeginVertical(GUI.skin.box);
 
-            if (_ascentSettings.AscentType == AscentType.PVG)
+            if (_ascentSettings.AscentType == AscentType.PDG)
             {
                 if (_ascentSettings.OptimizeStage >= 0)
                 {
@@ -179,15 +179,15 @@ namespace MuMech
         {
             Profiler.BeginSample("MJ.GUIWindow.ShowStatus");
 
-            if (_ascentSettings.AscentType == AscentType.PVG)
+            if (_ascentSettings.AscentType == AscentType.PDG)
             {
                 GUILayout.BeginVertical(GUI.skin.box);
 
                 if (Core.Guidance.Solution != null)
                 {
                     Solution solution = Core.Guidance.Solution;
-                    for (int pvgPhase = solution.Segments - 1; pvgPhase >= 0; pvgPhase--)
-                        GUILayout.Label($"{PhaseString(solution, VesselState.time, pvgPhase)}");
+                    for (int pdgPhase = solution.Segments - 1; pdgPhase >= 0; pdgPhase--)
+                        GUILayout.Label($"{PhaseString(solution, VesselState.time, pdgPhase)}");
                     GUILayout.Label(solution.TerminalString());
                 }
 
@@ -203,7 +203,7 @@ namespace MuMech
                 GUIStyle si;
                 if (Core.Guidance.IsStable())
                     si = GuiUtils.GreenLabel;
-                else if (Core.Guidance.IsInitializing() || Core.Guidance.Status == PVGStatus.FINISHED)
+                else if (Core.Guidance.IsInitializing() || Core.Guidance.Status == PDGStatus.FINISHED)
                     si = GuiUtils.OrangeLabel;
                 else
                     si = GuiUtils.RedLabel;
@@ -250,7 +250,7 @@ namespace MuMech
             if (!_launchingWithAnyPlaneControl)
             {
                 // Launch to Rendezvous
-                if (targetExists && _ascentSettings.AscentType != AscentType.PVG
+                if (targetExists && _ascentSettings.AscentType != AscentType.PDG
                                  && GuiUtils.ButtonTextBox(CachedLocalizer.Instance.MechJebAscentButton14, _ascentSettings.LaunchPhaseAngle, "º",
                                      width: 40)) //Launch to rendezvous:
                 {
@@ -277,7 +277,7 @@ namespace MuMech
                 }
 
                 //Launch to target LAN
-                if (targetExists && _ascentSettings.AscentType == AscentType.PVG
+                if (targetExists && _ascentSettings.AscentType == AscentType.PDG
                                  && GuiUtils.ButtonTextBox(CachedLocalizer.Instance.MechJebAscentLaunchToTargetLan,
                                      _ascentSettings.LaunchLANDifference,
                                      "º", width: LAN_WIDTH)) //Launch to target LAN
@@ -295,7 +295,7 @@ namespace MuMech
                 }
 
                 //Launch to LAN
-                if (_ascentSettings.AscentType == AscentType.PVG)
+                if (_ascentSettings.AscentType == AscentType.PDG)
                 {
                     if (GuiUtils.ButtonTextBox(CachedLocalizer.Instance.MechJebAscentLaunchToLan, _ascentSettings.DesiredLan, "º",
                             width: LAN_WIDTH)) //Launch to LAN
@@ -389,16 +389,16 @@ namespace MuMech
             VisibleSectionsGUIElements();
             ShowTargetingGUIElements();
 
-            _ascentSettings.LimitQaEnabled = _ascentSettings.AscentType == AscentType.PVG; // this is mandatory for PVG
+            _ascentSettings.LimitQaEnabled = _ascentSettings.AscentType == AscentType.PDG; // this is mandatory for PDG
 
             GUILayout.BeginVertical(GUI.skin.box);
             GUILayout.BeginHorizontal();
             _settingsMenu.Enabled = GUILayout.Toggle(_settingsMenu.Enabled, "Ascent Settings");
 
-            if (_ascentSettings.AscentType == AscentType.PVG)
+            if (_ascentSettings.AscentType == AscentType.PDG)
             {
                 Core.StageStats.RequestUpdate();
-                _pvgSettingsMenu.Enabled = GUILayout.Toggle(_pvgSettingsMenu.Enabled, "PVG Settings");
+                _pdgSettingsMenu.Enabled = GUILayout.Toggle(_pdgSettingsMenu.Enabled, "PDG Settings");
             }
 
             GUILayout.EndHorizontal();
@@ -411,16 +411,16 @@ namespace MuMech
             if (Core.DeactivateControl)
                 GUILayout.Label(CachedLocalizer.Instance.MechJebAscentLabel36, GuiUtils.RedLabel); //CONTROL DISABLED (AVIONICS)
 
-            if (!Vessel.patchedConicsUnlocked() && _ascentSettings.AscentType != AscentType.PVG)
+            if (!Vessel.patchedConicsUnlocked() && _ascentSettings.AscentType != AscentType.PDG)
             {
                 GUILayout.Label(CachedLocalizer.Instance
                     .MechJebAscentLabel37); //"Warning: MechJeb is unable to circularize without an upgraded Tracking Station."
             }
 
             GUILayout.BeginHorizontal();
-            if (_ascentSettings.AscentType == AscentType.PVG)
+            if (_ascentSettings.AscentType == AscentType.PDG)
             {
-                if (GUILayout.Button("Reset to PVG/RO Defaults"))
+                if (GUILayout.Button("Reset to PDG/RO Defaults"))
                     _ascentSettings.ApplyRODefaults();
             }
 
@@ -477,25 +477,25 @@ namespace MuMech
             return phaseAngleDifference / phaseAngleRate;
         }
 
-        private string PhaseString(Solution solution, double t, int pvgPhase)
+        private string PhaseString(Solution solution, double t, int pdgPhase)
         {
-            int mjPhase = solution.MJPhase(pvgPhase);
-            int kspStage = solution.KSPStage(pvgPhase);
+            int mjPhase = solution.MJPhase(pdgPhase);
+            int kspStage = solution.KSPStage(pdgPhase);
 
-            if (solution.CoastPhase(pvgPhase))
-                return $"coast: {kspStage} {solution.Tgo(t, pvgPhase):F1}s";
+            if (solution.CoastPhase(pdgPhase))
+                return $"coast: {kspStage} {solution.Tgo(t, pdgPhase):F1}s";
 
             double stageDeltaV = 0;
 
             if (mjPhase < Core.StageStats.VacStats.Count)
                 stageDeltaV = Core.StageStats.VacStats[mjPhase].DeltaV;
 
-            double excessDV = stageDeltaV - solution.DV(t, pvgPhase);
+            double excessDV = stageDeltaV - solution.DV(t, pdgPhase);
 
             // eliminate some of the noise
             if (Math.Abs(excessDV) < 2.5) excessDV = 0;
 
-            return $"burn: {kspStage} {solution.Tgo(t, pvgPhase):F1}s {solution.DV(t, pvgPhase):F1}m/s ({excessDV:F1}m/s)";
+            return $"burn: {kspStage} {solution.Tgo(t, pdgPhase):F1}s {solution.DV(t, pdgPhase):F1}m/s ({excessDV:F1}m/s)";
         }
 
         protected override GUILayoutOption[] WindowOptions() => new[] { GUILayout.Width(275), GUILayout.Height(30) };

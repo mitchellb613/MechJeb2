@@ -6,7 +6,7 @@ using static MechJebLib.Utils.Statics;
 
 namespace MuMech
 {
-    public enum AscentType { CLASSIC, PVG }
+    public enum AscentType { CLASSIC, PDG }
 
     public class MechJebModuleAscentSettings : ComputerModule
     {
@@ -188,7 +188,7 @@ namespace MuMech
                 : Math.Min(30000, DesiredOrbitAltitude * 0.85);
 
         /*
-         * PVG Staging values
+         * PDG Staging values
          */
 
         [Persistent(pass = (int)(Pass.TYPE | Pass.GLOBAL))]
@@ -281,7 +281,7 @@ namespace MuMech
             return type switch
             {
                 AscentType.CLASSIC => Core.GetComputerModule<MechJebModuleAscentClassicAutopilot>(),
-                AscentType.PVG     => Core.GetComputerModule<MechJebModuleAscentPVGAutopilot>(),
+                AscentType.PDG     => Core.GetComputerModule<MechJebModuleAscentPDGAutopilot>(),
                 _                  => Core.GetComputerModule<MechJebModuleAscentClassicAutopilot>()
             };
         }

@@ -7,7 +7,7 @@
 extern alias JetBrainsAnnotations;
 using System.Collections.Generic;
 using MechJebLib.Primitives;
-using MechJebLib.PVG;
+using MechJebLib.PDG;
 using MechJebLibBindings;
 using UnityEngine;
 using static MechJebLib.Utils.Statics;
@@ -16,10 +16,10 @@ using static MechJebLib.Utils.Statics;
 
 namespace MuMech
 {
-    public enum PVGStatus { ENABLED, INITIALIZED, BURNING, COASTING, TERMINAL, TERMINAL_RCS, TERMINAL_STAGING, FINISHED }
+    public enum PDGStatus { ENABLED, INITIALIZED, BURNING, COASTING, TERMINAL, TERMINAL_RCS, TERMINAL_STAGING, FINISHED }
 
     /// <summary>
-    ///     The guidance controller for PVG (responsible for taking a Solution from PVG and flying it)
+    ///     The guidance controller for PDG (responsible for taking a Solution from PDG and flying it)
     /// </summary>
     public class MechJebModuleGuidanceController : ComputerModule
     {
@@ -42,7 +42,7 @@ namespace MuMech
 
         public Solution? Solution;
 
-        public PVGStatus Status = PVGStatus.ENABLED;
+        public PDGStatus Status = PDGStatus.ENABLED;
 
         public override void OnStart(PartModule.StartState state)
         {
@@ -54,7 +54,7 @@ namespace MuMech
 
         protected override void OnModuleEnabled()
         {
-            Status = PVGStatus.ENABLED;
+            Status = PDGStatus.ENABLED;
             Core.Attitude.Users.Add(this);
             Core.Thrust.Users.Add(this);
             Core.Spinup.Users.Add(this);
@@ -71,7 +71,7 @@ namespace MuMech
             Core.Staging.Users.Remove(this);
             Core.Spinup.Users.Remove(this);
             Solution = null;
-            Status   = PVGStatus.FINISHED;
+            Status   = PDGStatus.FINISHED;
         }
 
         private bool _allowExecution;
@@ -88,21 +88,21 @@ namespace MuMech
 
             if (!HighLogic.LoadedSceneIsFlight)
             {
-                Debug.Log("MechJebModuleGuidanceController [BUG]: PVG enabled in non-flight mode.  How does this happen?");
+                Debug.Log("MechJebModuleGuidanceController [BUG]: PDG enabled in non-flight mode.  How does this happen?");
                 Done();
             }
 
-            if (!Enabled || Status == PVGStatus.ENABLED)
+            if (!Enabled || Status == PDGStatus.ENABLED)
                 return;
 
-            if (Status == PVGStatus.FINISHED)
+            if (Status == PDGStatus.FINISHED)
             {
                 Done();
                 return;
             }
 
             // RO/RF: if we are spooling up engines, then flush the PID integrators to prevent windup
-            if (Status == PVGStatus.BURNING || Status == PVGStatus.TERMINAL)
+            if (Status == PDGStatus.BURNING || Status == PDGStatus.TERMINAL)
                 if (VesselState.thrustCurrent < VesselState.thrustMinimum*0.98)
                     Core.Attitude.Controller.Reset();
 
@@ -122,7 +122,7 @@ namespace MuMech
             bool hasRCS = Vessel.hasEnabledRCSModules() &&
                           VesselState.rcsThrustAvailable.Up > 0.1 * VesselState.rcsThrustAvailable.MaxMagnitude();
 
-            return hasRCS && Status != PVGStatus.TERMINAL_RCS && Vessel.currentStage == _ascentSettings.LastStage;
+            return hasRCS && Status != PDGStatus.TERMINAL_RCS && Vessel.currentStage == _ascentSettings.LastStage;
         }
 
         private void HandleTerminal()
@@ -154,12 +154,12 @@ namespace MuMech
 
             // TERMINAL_STAGING is set on a non-upper stage optimized stage, once we are no longer in the optimized stage
             // then we have staged, so we need to reset that condition.  Otherwise we need to wait for staging.
-            if (Status == PVGStatus.TERMINAL_STAGING)
+            if (Status == PDGStatus.TERMINAL_STAGING)
             {
                 if (Vessel.currentStage == _ascentSettings.OptimizeStage)
                     return;
 
-                Status = PVGStatus.BURNING;
+                Status = PDGStatus.BURNING;
             }
 
             // We should either be in an non-upper stage optimized stage, or we should be within 10 seconds of the whole
@@ -184,12 +184,12 @@ namespace MuMech
             if (Solution.Tgo(VesselState.time, solutionIndex) > 10)
                 return;
 
-            if (Status != PVGStatus.TERMINAL_RCS)
-                Status = PVGStatus.TERMINAL;
+            if (Status != PDGStatus.TERMINAL_RCS)
+                Status = PDGStatus.TERMINAL;
 
             Core.Warp.MinimumWarp();
 
-            if (Status == PVGStatus.TERMINAL_RCS && !Vessel.ActionGroups[KSPActionGroup.RCS]) // if someone manually disables RCS
+            if (Status == PDGStatus.TERMINAL_RCS && !Vessel.ActionGroups[KSPActionGroup.RCS]) // if someone manually disables RCS
             {
                 Debug.Log("[MechJebModuleGuidanceController] terminating guidance due to manual deactivation of RCS.");
                 TerminalDone();
@@ -210,7 +210,7 @@ namespace MuMech
             bool shouldEndTerminal = false;
 
             // this handles ending TERMINAL guidance (but not TERMINAL_RCS) due to thrust fault in the last stage
-            if (Status == PVGStatus.TERMINAL && VesselState.thrustCurrent == 0 && Vessel.currentStage < _ascentSettings.LastStage.Val)
+            if (Status == PDGStatus.TERMINAL && VesselState.thrustCurrent == 0 && Vessel.currentStage < _ascentSettings.LastStage.Val)
             {
                 Debug.Log("[MechJebModuleGuidanceController] no thrust in last stage.");
                 shouldEndTerminal = true;
@@ -224,7 +224,7 @@ namespace MuMech
                 if (WillDoRCSButNotYet())
                 {
                     Debug.Log("[MechJebModuleGuidanceController] transition to RCS terminal guidance.");
-                    Status = PVGStatus.TERMINAL_RCS;
+                    Status = PDGStatus.TERMINAL_RCS;
                     if (!Vessel.ActionGroups[KSPActionGroup.RCS])
                         Vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, true);
                 }
@@ -245,25 +245,25 @@ namespace MuMech
             Core.Spinup.RollAngularVelocity = _ascentSettings.SpinupAngularVelocity;
         }
 
-        public bool IsTerminal() => Status == PVGStatus.TERMINAL_RCS || Status == PVGStatus.TERMINAL_STAGING || Status == PVGStatus.TERMINAL;
+        public bool IsTerminal() => Status == PDGStatus.TERMINAL_RCS || Status == PDGStatus.TERMINAL_STAGING || Status == PDGStatus.TERMINAL;
 
         /* is guidance usable? */
         public bool IsStable() => IsNormal() || IsTerminal();
 
         // either ENABLED and waiting for a Solution, or executing a solution "normally" (not terminal, not failed)
-        public bool IsReady() => Status == PVGStatus.ENABLED || IsNormal();
+        public bool IsReady() => Status == PDGStatus.ENABLED || IsNormal();
 
         // not TERMINAL guidance or TERMINAL_RCS -- when we should be running the optimizer
-        public bool IsNormal() => Status == PVGStatus.INITIALIZED || Status == PVGStatus.BURNING || Status == PVGStatus.COASTING;
+        public bool IsNormal() => Status == PDGStatus.INITIALIZED || Status == PDGStatus.BURNING || Status == PDGStatus.COASTING;
 
-        public bool IsCoasting() => Status == PVGStatus.COASTING;
+        public bool IsCoasting() => Status == PDGStatus.COASTING;
 
         private bool IsThrustOn() => IsBurning() || IsTerminal();
 
-        private bool IsBurning() => Status == PVGStatus.BURNING;
+        private bool IsBurning() => Status == PDGStatus.BURNING;
 
         /* normal pre-states but not usefully converged */
-        public bool IsInitializing() => Status == PVGStatus.ENABLED || Status == PVGStatus.INITIALIZED;
+        public bool IsInitializing() => Status == PDGStatus.ENABLED || Status == PDGStatus.INITIALIZED;
 
         private void HandleThrottle()
         {
@@ -273,13 +273,13 @@ namespace MuMech
             if (!_allowExecution)
                 return;
 
-            if (Status == PVGStatus.TERMINAL_RCS)
+            if (Status == PDGStatus.TERMINAL_RCS)
             {
                 RCSOn();
                 return;
             }
 
-            if (Status == PVGStatus.TERMINAL || Status == PVGStatus.TERMINAL_STAGING)
+            if (Status == PDGStatus.TERMINAL || Status == PDGStatus.TERMINAL_STAGING)
             {
                 ThrottleOn();
                 return;
@@ -315,7 +315,7 @@ namespace MuMech
             {
                 ThrottleOn();
 
-                Status = PVGStatus.BURNING;
+                Status = PDGStatus.BURNING;
             }
         }
 
@@ -333,7 +333,7 @@ namespace MuMech
             if (IsGrounded())
                 Solution.T0 = VesselState.time;
 
-            if (Status != PVGStatus.TERMINAL_RCS)
+            if (Status != PDGStatus.TERMINAL_RCS)
             {
                 (double pitch, double heading, V3 inertial) = Solution.PitchAndHeading(VesselState.time);
                 Pitch                          = Rad2Deg(pitch);
@@ -415,7 +415,7 @@ namespace MuMech
             {
                 ThrustOff();
                 Core.Staging.ImmediateStage();
-                Status = PVGStatus.TERMINAL_STAGING;
+                Status = PDGStatus.TERMINAL_STAGING;
                 return;
             }
 
@@ -427,7 +427,7 @@ namespace MuMech
         {
             Users.Clear();
             ThrustOff();
-            Status   = PVGStatus.FINISHED;
+            Status   = PDGStatus.FINISHED;
             Solution = null;
             Enabled  = false;
         }
@@ -439,14 +439,14 @@ namespace MuMech
             if (!Vessel.ActionGroups[KSPActionGroup.RCS])
                 Vessel.ActionGroups.SetGroup(KSPActionGroup.RCS, true);
 
-            Status = PVGStatus.COASTING;
+            Status = PDGStatus.COASTING;
         }
 
         public void SetSolution(Solution solution)
         {
             Solution = solution;
-            if (Status == PVGStatus.ENABLED)
-                Status = PVGStatus.INITIALIZED;
+            if (Status == PDGStatus.ENABLED)
+                Status = PDGStatus.INITIALIZED;
         }
 
         // This API is necessary so that we know that there's no future coast on the trajectory so

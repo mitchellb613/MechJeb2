@@ -74,7 +74,7 @@ namespace MechJebLib.ODE
         public int Interpnum { get; set; } = 20;
 
         /// <summary>
-        ///     Throw exception when MaxIter is hit (PVG optimizer works better with this set to false).
+        ///     Throw exception when MaxIter is hit (old PVG optimizer worked better with this set to false).
         /// </summary>
         public bool ThrowOnMaxIter { get; set; } = true;
 
