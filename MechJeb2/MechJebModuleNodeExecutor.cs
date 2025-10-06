@@ -327,8 +327,7 @@ namespace MuMech
 
         private bool Aligned() => AngleFromDirection() < Deg2Rad(1);
 
-private bool AlignedAndSettled() =>
-    Aligned() && Max(Abs(Core.vessel.angularVelocity.x), Abs(Core.vessel.angularVelocity.z)) < 0.001;
+        private bool AlignedAndSettled() => Aligned() && Max(Abs(Core.vessel.angularVelocity.x), Abs(Core.vessel.angularVelocity.z)) < 0.001;
 
 
 
