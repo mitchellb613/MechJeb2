@@ -329,8 +329,6 @@ namespace MuMech
 
         private bool AlignedAndSettled() => Aligned() && Max(Abs(Core.vessel.angularVelocity.x), Abs(Core.vessel.angularVelocity.z)) < 0.001;
 
-
-
         // This returns the angle to the node (in radians), note that you probably don't want to use this outside of
         // stock checks for maneuver termination, and probably never in principia (see SafeCurrentPrincipiaNode()).
         private double AngleFromNode()
